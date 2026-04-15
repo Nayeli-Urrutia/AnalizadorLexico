@@ -1,180 +1,770 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Analizador de Codigo</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analizador Léxico, BNF y Árbol de Derivación</title>
 
     <style>
+        *{
+            box-sizing:border-box;
+        }
 
         body{
-            background:#0f172a;
-            font-family:Arial;
-            display:flex;
-            justify-content:center;
-            align-items:center;
-            height:100vh;
             margin:0;
+            font-family:Arial, Helvetica, sans-serif;
+            background:linear-gradient(135deg,#020617,#0f172a,#1e293b);
+            color:#e2e8f0;
+            min-height:100vh;
+            padding:30px 15px;
         }
 
         .contenedor{
-            background:#1e293b;
-            padding:40px;
-            border-radius:12px;
-            width:700px;
-            box-shadow:0px 0px 25px rgba(0,0,0,0.5);
+            max-width:1350px;
+            margin:0 auto;
+            background:rgba(15,23,42,.92);
+            border:1px solid rgba(148,163,184,.15);
+            border-radius:18px;
+            box-shadow:0 20px 50px rgba(0,0,0,.35);
+            overflow:hidden;
         }
 
-        h1{
-            text-align:center;
+        .encabezado{
+            padding:28px 30px 18px;
+            background:linear-gradient(90deg,#0f172a,#1e3a8a,#0ea5e9);
+        }
+
+        .encabezado h1{
+            margin:0 0 8px;
+            font-size:30px;
+            color:#ffffff;
+        }
+
+        .encabezado p{
+            margin:0;
+            color:#dbeafe;
+            font-size:14px;
+        }
+
+        .contenido{
+            padding:25px;
+            display:grid;
+            grid-template-columns: 1.1fr .9fr;
+            gap:22px;
+        }
+
+        .panel{
+            background:#111827;
+            border:1px solid rgba(148,163,184,.15);
+            border-radius:16px;
+            padding:18px;
+            box-shadow:0 10px 30px rgba(0,0,0,.18);
+        }
+
+        .panel h2{
+            margin:0 0 14px;
+            font-size:19px;
             color:#38bdf8;
-            margin-bottom:20px;
+        }
+
+        .panel h3{
+            margin:0 0 10px;
+            font-size:16px;
+            color:#93c5fd;
         }
 
         textarea{
             width:100%;
-            height:120px;
-            background:#0f172a;
-            color:white;
-            border:1px solid #334155;
-            border-radius:6px;
-            padding:10px;
+            min-height:180px;
+            resize:vertical;
+            border:none;
+            outline:none;
+            border-radius:12px;
+            background:#020617;
+            color:#f8fafc;
+            padding:16px;
             font-size:15px;
+            line-height:1.5;
+            border:1px solid #334155;
+        }
+
+        .botones{
+            display:flex;
+            flex-wrap:wrap;
+            gap:12px;
+            margin-top:15px;
         }
 
         button{
-            margin-top:15px;
-            width:100%;
-            padding:12px;
-            background:#38bdf8;
             border:none;
-            border-radius:6px;
-            color:black;
-            font-size:16px;
-            font-weight:bold;
+            border-radius:10px;
+            padding:12px 18px;
+            font-size:14px;
+            font-weight:700;
             cursor:pointer;
+            transition:transform .2s ease, opacity .2s ease;
         }
 
         button:hover{
-            background:#0ea5e9;
+            transform:translateY(-2px);
+            opacity:.95;
+        }
+
+        .btn-analizar{ background:#38bdf8; color:#082f49; }
+        .btn-bnf{ background:#22c55e; color:#052e16; }
+        .btn-arbol{ background:#f59e0b; color:#451a03; }
+        .btn-ejemplo{ background:#a78bfa; color:#2e1065; }
+        .btn-limpiar{ background:#ef4444; color:#fff; }
+
+        .mini-grid{
+            display:grid;
+            grid-template-columns:repeat(2,1fr);
+            gap:16px;
+        }
+
+        .salida{
+            background:#020617;
+            border:1px solid #334155;
+            border-radius:12px;
+            padding:22px;
+            min-height:300px;
+            max-height:600px;
+            overflow:auto;
+            white-space:pre-wrap;
+            font-family:Consolas, monospace;
+            font-size:15px;
+            line-height:1.9;
+            color:#e2e8f0;
+        }
+
+        .arbol{
+            white-space:pre;
+            line-height:2;
+        }
+
+        .tabla-contenedor{
+            overflow:auto;
+            margin-top:10px;
         }
 
         table{
-            margin-top:20px;
             width:100%;
             border-collapse:collapse;
-            background:#0f172a;
-            color:white;
+            margin-top:8px;
+            background:#020617;
+            border-radius:10px;
+            overflow:hidden;
         }
 
-        th,td{
-            padding:10px;
+        th, td{
             border:1px solid #334155;
+            padding:10px 12px;
             text-align:left;
+            font-size:14px;
+            vertical-align:top;
         }
 
         th{
-            background:#38bdf8;
-            color:black;
+            background:#0ea5e9;
+            color:#082f49;
         }
 
-        .error{
+        .ok{
+            color:#22c55e;
+            font-weight:bold;
+        }
+
+        .error-lexico{
             color:#f87171;
             font-weight:bold;
         }
 
+        .error-sintactico{
+            color:#f59e0b;
+            font-weight:bold;
+        }
+
+        .ejemplos{
+            display:grid;
+            gap:10px;
+            margin-top:12px;
+        }
+
+        .ejemplo-item{
+            background:#020617;
+            border:1px solid #334155;
+            border-radius:10px;
+            padding:12px;
+            cursor:pointer;
+            transition:.2s ease;
+        }
+
+        .ejemplo-item:hover{
+            border-color:#38bdf8;
+            transform:translateY(-2px);
+        }
+
+        .tag{
+            display:inline-block;
+            margin-bottom:6px;
+            padding:4px 9px;
+            border-radius:30px;
+            background:#1e293b;
+            color:#7dd3fc;
+            font-size:12px;
+            font-weight:bold;
+        }
+
+        .leyenda{
+            margin-top:16px;
+            display:flex;
+            gap:16px;
+            flex-wrap:wrap;
+            font-size:12px;
+            color:#94a3b8;
+        }
+
+        .dot{
+            width:10px;
+            height:10px;
+            border-radius:50%;
+            display:inline-block;
+            margin-right:6px;
+        }
+
+        .nota{
+            margin-top:10px;
+            font-size:13px;
+            color:#94a3b8;
+        }
+
+        @media (max-width: 980px){
+            .contenido{
+                grid-template-columns:1fr;
+            }
+
+            .mini-grid{
+                grid-template-columns:1fr;
+            }
+        }
     </style>
-
 </head>
-
 <body>
 
 <div class="contenedor">
+    <div class="encabezado">
+        <h1>Analizador Léxico, BNF y Árbol de Derivación</h1>
+        <p>Proyecto orientado al ejercicio práctico: definición de reglas BNF, análisis léxico y ejemplificación de cinco entradas con su árbol de derivación.</p>
+    </div>
 
-    <h1>Analizador Lexico</h1>
+    <div class="contenido">
+        <div class="panel">
+            <h2>Entrada de código</h2>
+            <textarea id="codigo" placeholder="Ejemplo:
+int contador;
+contador := 10;
+print(contador);"></textarea>
 
-    <textarea id="codigo" placeholder="Escriba el codigo aqui"></textarea>
+            <div class="botones">
+                <button class="btn-analizar" onclick="analizar()">Analizar</button>
+                <button class="btn-bnf" onclick="mostrarBNF()">Ver BNF</button>
+                <button class="btn-arbol" onclick="mostrarArbol()">Ver Árbol</button>
+                <button class="btn-ejemplo" onclick="cargarEjemploAleatorio()">Cargar ejemplo</button>
+                <button class="btn-limpiar" onclick="limpiarTodo()">Limpiar</button>
+            </div>
 
-    <button onclick="analizar()">Analizar</button>
+            <div class="tabla-contenedor">
+                <table id="tabla">
+                    <tr>
+                        <th>Línea</th>
+                        <th>Columna</th>
+                        <th>Lexema</th>
+                        <th>Tipo</th>
+                        <th>Detalle</th>
+                    </tr>
+                </table>
+            </div>
 
-    <table id="tabla">
+            <div class="leyenda">
+                <span><span class="dot" style="background:#22c55e"></span>Token válido</span>
+                <span><span class="dot" style="background:#f87171"></span>Error léxico</span>
+                <span><span class="dot" style="background:#f59e0b"></span>Error sintáctico</span>
+            </div>
+        </div>
 
-        <tr>
-            <th>Token</th>
-            <th>Tipo</th>
-        </tr>
+        <div class="panel">
+            <h2>Panel académico</h2>
 
-    </table>
+            <div class="mini-grid">
+                <div>
+                    <h3>BNF de las reglas</h3>
+                    <div id="bnf" class="salida">Presiona "Ver BNF" para mostrar la gramática del ejercicio.</div>
+                </div>
 
+                <div>
+                    <h3>Árbol de derivación</h3>
+                    <div id="arbol" class="salida arbol">Presiona "Ver Árbol" para construir el árbol según la entrada.</div>
+                </div>
+            </div>
+
+            <div style="margin-top:18px;">
+                <h3>5 ejemplos de sentencias</h3>
+                <div class="ejemplos">
+                    <div class="ejemplo-item" onclick="ponerEjemplo(1)">
+                        <span class="tag">Ejemplo 1</span>
+                        <div>int contador;</div>
+                    </div>
+                    <div class="ejemplo-item" onclick="ponerEjemplo(2)">
+                        <span class="tag">Ejemplo 2</span>
+                        <div>contador := 25;</div>
+                    </div>
+                    <div class="ejemplo-item" onclick="ponerEjemplo(3)">
+                        <span class="tag">Ejemplo 3</span>
+                        <div>print(contador);</div>
+                    </div>
+                    <div class="ejemplo-item" onclick="ponerEjemplo(4)">
+                        <span class="tag">Ejemplo 4</span>
+                        <div>if(contador >= 10){ print(contador); }</div>
+                    </div>
+                    <div class="ejemplo-item" onclick="ponerEjemplo(5)">
+                        <span class="tag">Ejemplo 5</span>
+                        <div>for(contador := 1; contador &lt; 5; contador := contador + 1){ print(contador); }</div>
+                    </div>
+                </div>
+
+                <div class="nota">
+                    El árbol que se genera aquí es textual y académico, pensado para demostrar la derivación de las sentencias pedidas por el ejercicio.
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
+    const reservadas = ["if", "else", "for", "print", "int"];
+    const operadoresArit = ["+", "-", "*", "/"];
+    const operadoresRel = [">=", "<=", "<", ">", "=", "<>"];
+    const simbolos = ["{", "}", "[", "]", "(", ")", ",", ";"];
+    const compuestos = [":=", ">=", "<=", "<>", ".."];
 
-    function analizar(){
+    function analizar() {
+        const codigo = document.getElementById("codigo").value;
+        const tabla = document.getElementById("tabla");
 
-        let codigo=document.getElementById("codigo").value;
+        tabla.innerHTML = `
+            <tr>
+                <th>Línea</th>
+                <th>Columna</th>
+                <th>Lexema</th>
+                <th>Tipo</th>
+                <th>Detalle</th>
+            </tr>
+        `;
 
-        let tokens=codigo.match(/:=|>=|<=|<>|\.\.|[a-zA-Z][a-zA-Z0-9]*|\d+|[+\-*/=<>]|[{}\[\](),;]|[^\s]+/g);
+        if (!codigo.trim()) {
+            alert("Por favor ingrese código para analizar.");
+            return;
+        }
 
-        let tabla=document.getElementById("tabla");
+        const tokens = escanearCodigo(codigo);
 
-        tabla.innerHTML="<tr><th>Token</th><th>Tipo</th></tr>";
+        if (tokens.length === 0) {
+            tabla.innerHTML += `<tr><td colspan="5">Sin tokens reconocidos</td></tr>`;
+            return;
+        }
 
-        tokens.forEach(function(t){
+        tokens.forEach(token => {
+            const clase = token.error
+                ? (token.tipo === "Error sintáctico" ? "error-sintactico" : "error-lexico")
+                : "ok";
 
-            let tipo="";
-
-            let reservadas=["if","else","for","print","int"];
-            let operadores=["+","-","*","/"];
-            let relacionales=[">=","<=","<",">","=","<>"];
-            let simbolos=["{","}","[","]","(",")",",",";",".."];
-
-            if(reservadas.includes(t))
-                tipo="Palabra reservada";
-
-            else if(/^[a-zA-Z][a-zA-Z0-9]{0,9}$/.test(t))
-                tipo="Identificador";
-
-            else if(/^(100|[0-9]{1,2})$/.test(t))
-                tipo="Numero";
-
-            else if(operadores.includes(t))
-                tipo="Operador aritmetico";
-
-            else if(t==":=")
-                tipo="Asignacion";
-
-            else if(relacionales.includes(t))
-                tipo="Operador relacional";
-
-            else if(simbolos.includes(t))
-                tipo="Simbolo";
-
-            else if(t.startsWith("123"))
-                tipo="Error semantico";
-
-            else if(t.includes("@"))
-                tipo="Error sintactico";
-
-            else if(t=="while")
-                tipo="Error logico";
-
-            else
-                tipo="Error lexico";
-
-            let fila="<tr>";
-
-            if(tipo.includes("Error"))
-                fila+="<td class='error'>"+t+"</td><td class='error'>"+tipo+"</td>";
-            else
-                fila+="<td>"+t+"</td><td>"+tipo+"</td>";
-
-            fila+="</tr>";
-
-            tabla.innerHTML+=fila;
-
+            tabla.innerHTML += `
+                <tr>
+                    <td class="${clase}">${token.linea}</td>
+                    <td class="${clase}">${token.columna}</td>
+                    <td class="${clase}">${escapeHtml(token.lexema)}</td>
+                    <td class="${clase}">${token.tipo}</td>
+                    <td class="${clase}">${escapeHtml(token.detalle)}</td>
+                </tr>
+            `;
         });
-
     }
 
+    function escanearCodigo(codigo) {
+        const resultado = [];
+        const lineas = codigo.split(/\r?\n/);
+
+        for (let numLinea = 0; numLinea < lineas.length; numLinea++) {
+            const lineaTexto = lineas[numLinea];
+            let i = 0;
+
+            while (i < lineaTexto.length) {
+                const actual = lineaTexto[i];
+
+                if (/\s/.test(actual)) {
+                    i++;
+                    continue;
+                }
+
+                const columna = i + 1;
+
+                if (i + 1 < lineaTexto.length) {
+                    const doble = lineaTexto.substring(i, i + 2);
+
+                    if (doble === "++" || doble === "--") {
+                        resultado.push({
+                            lexema: doble,
+                            tipo: "Error sintáctico",
+                            linea: numLinea + 1,
+                            columna,
+                            error: true,
+                            detalle: `El operador ${doble} no está definido en la gramática.`
+                        });
+                        i += 2;
+                        continue;
+                    }
+
+                    if (compuestos.includes(doble)) {
+                        resultado.push(clasificarLexema(doble, numLinea + 1, columna));
+                        i += 2;
+                        continue;
+                    }
+                }
+
+                if (/[a-zA-Z]/.test(actual)) {
+                    const inicio = i;
+                    i++;
+
+                    while (i < lineaTexto.length && /[a-zA-Z0-9]/.test(lineaTexto[i])) {
+                        i++;
+                    }
+
+                    const lexema = lineaTexto.substring(inicio, i);
+                    resultado.push(clasificarLexema(lexema, numLinea + 1, columna));
+                    continue;
+                }
+
+                if (/\d/.test(actual)) {
+                    const inicio = i;
+                    i++;
+
+                    while (i < lineaTexto.length && /\d/.test(lineaTexto[i])) {
+                        i++;
+                    }
+
+                    if (i < lineaTexto.length && /[a-zA-Z]/.test(lineaTexto[i])) {
+                        while (i < lineaTexto.length && /[a-zA-Z0-9]/.test(lineaTexto[i])) {
+                            i++;
+                        }
+
+                        const lexemaError = lineaTexto.substring(inicio, i);
+                        resultado.push({
+                            lexema: lexemaError,
+                            tipo: "Error léxico",
+                            linea: numLinea + 1,
+                            columna,
+                            error: true,
+                            detalle: "Un identificador no puede iniciar con número."
+                        });
+                        continue;
+                    }
+
+                    const numero = lineaTexto.substring(inicio, i);
+                    resultado.push(clasificarLexema(numero, numLinea + 1, columna));
+                    continue;
+                }
+
+                if (
+                    operadoresArit.includes(actual) ||
+                    [">", "<", "="].includes(actual) ||
+                    simbolos.includes(actual)
+                ) {
+                    resultado.push(clasificarLexema(actual, numLinea + 1, columna));
+                    i++;
+                    continue;
+                }
+
+                resultado.push({
+                    lexema: actual,
+                    tipo: "Error léxico",
+                    linea: numLinea + 1,
+                    columna,
+                    error: true,
+                    detalle: "Carácter no válido dentro del lenguaje."
+                });
+                i++;
+            }
+        }
+
+        return resultado;
+    }
+
+    function clasificarLexema(lexema, linea, columna) {
+        if (reservadas.includes(lexema)) {
+            return { lexema, tipo: "Palabra reservada", linea, columna, error: false, detalle: "Token válido" };
+        }
+
+        if (lexema === ":=") {
+            return { lexema, tipo: "Operador de asignación", linea, columna, error: false, detalle: "Token válido" };
+        }
+
+        if (operadoresArit.includes(lexema)) {
+            return { lexema, tipo: "Operador aritmético", linea, columna, error: false, detalle: "Token válido" };
+        }
+
+        if (operadoresRel.includes(lexema)) {
+            return { lexema, tipo: "Operador relacional", linea, columna, error: false, detalle: "Token válido" };
+        }
+
+        if (simbolos.includes(lexema) || lexema === "..") {
+            return { lexema, tipo: "Símbolo", linea, columna, error: false, detalle: "Token válido" };
+        }
+
+        if (/^(100|[0-9]{1,2})$/.test(lexema)) {
+            return { lexema, tipo: "Número entero", linea, columna, error: false, detalle: "Token válido" };
+        }
+
+        if (/^[a-zA-Z][a-zA-Z0-9]{0,9}$/.test(lexema)) {
+            return { lexema, tipo: "Identificador", linea, columna, error: false, detalle: "Token válido" };
+        }
+
+        if (/^[a-zA-Z][a-zA-Z0-9]+$/.test(lexema) && lexema.length > 10) {
+            return {
+                lexema,
+                tipo: "Error léxico",
+                linea,
+                columna,
+                error: true,
+                detalle: "El identificador supera los 10 caracteres permitidos."
+            };
+        }
+
+        if (/^\d+$/.test(lexema) && parseInt(lexema, 10) > 100) {
+            return {
+                lexema,
+                tipo: "Error léxico",
+                linea,
+                columna,
+                error: true,
+                detalle: "El número está fuera del rango permitido (0 a 100)."
+            };
+        }
+
+        return {
+            lexema,
+            tipo: "Error léxico",
+            linea,
+            columna,
+            error: true,
+            detalle: "Lexema no reconocido por las reglas del lenguaje."
+        };
+    }
+
+    function mostrarBNF() {
+        const bnf = `<programa> ::= <sentencia>
+
+<sentencia> ::= <declaracion>
+              | <asignacion>
+              | <impresion>
+              | <condicional>
+              | <ciclo_for>
+
+<declaracion> ::= "int" <identificador> ";"
+
+<asignacion> ::= <identificador> ":=" <expresion> ";"
+
+<impresion> ::= "print" "(" <expresion> ")" ";"
+
+<condicional> ::= "if" "(" <condicion> ")" "{" <sentencia> "}"
+
+<ciclo_for> ::= "for" "(" <asignacion_for> ";" <condicion> ";" <incremento> ")" "{" <sentencia> "}"
+
+<asignacion_for> ::= <identificador> ":=" <numero>
+
+<incremento> ::= <identificador> ":=" <identificador> "+" <numero>
+
+<condicion> ::= <expresion> <operador_relacional> <expresion>
+
+<expresion> ::= <identificador>
+              | <numero>
+
+<operador_relacional> ::= ">" | "<" | ">=" | "<=" | "=" | "<>"
+
+<identificador> ::= <letra> <resto_id>
+
+<resto_id> ::= ε | <letra_o_digito> <resto_id>
+
+<numero> ::= <digito> | <digito> <numero>
+
+<letra> ::= "a" | ... | "z" | "A" | ... | "Z"
+<digito> ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
+<letra_o_digito> ::= <letra> | <digito>`;
+
+        document.getElementById("bnf").textContent = bnf;
+    }
+
+    function mostrarArbol() {
+        const codigo = document.getElementById("codigo").value.trim();
+        const arbol = generarArbol(codigo);
+        document.getElementById("arbol").textContent = arbol;
+    }
+
+    function generarArbol(codigo) {
+        if (!codigo) {
+            return "Primero escribe o carga una sentencia.";
+        }
+
+        const texto = codigo.replace(/\s+/g, " ").trim();
+
+        if (/^int\s+[a-zA-Z][a-zA-Z0-9]{0,9}\s*;$/i.test(texto)) {
+            const id = texto.match(/^int\s+([a-zA-Z][a-zA-Z0-9]{0,9})\s*;$/i)[1];
+            return `<programa>
+└── <sentencia>
+    └── <declaracion>
+        ├── int
+        ├── <identificador>
+        │   └── ${id}
+        └── ;`;
+        }
+
+        if (/^[a-zA-Z][a-zA-Z0-9]{0,9}\s*:=\s*([a-zA-Z][a-zA-Z0-9]{0,9}|\d+)\s*;$/i.test(texto)) {
+            const partes = texto.match(/^([a-zA-Z][a-zA-Z0-9]{0,9})\s*:=\s*([a-zA-Z][a-zA-Z0-9]{0,9}|\d+)\s*;$/i);
+            return `<programa>
+└── <sentencia>
+    └── <asignacion>
+        ├── <identificador>
+        │   └── ${partes[1]}
+        ├── :=
+        ├── <expresion>
+        │   └── ${partes[2]}
+        └── ;`;
+        }
+
+        if (/^print\s*\(\s*([a-zA-Z][a-zA-Z0-9]{0,9}|\d+)\s*\)\s*;$/i.test(texto)) {
+            const valor = texto.match(/^print\s*\(\s*([a-zA-Z][a-zA-Z0-9]{0,9}|\d+)\s*\)\s*;$/i)[1];
+            return `<programa>
+└── <sentencia>
+    └── <impresion>
+        ├── print
+        ├── (
+        ├── <expresion>
+        │   └── ${valor}
+        ├── )
+        └── ;`;
+        }
+
+        if (/^if\s*\(\s*([a-zA-Z][a-zA-Z0-9]{0,9}|\d+)\s*(>=|<=|>|<|=|<>)\s*([a-zA-Z][a-zA-Z0-9]{0,9}|\d+)\s*\)\s*\{\s*print\s*\(\s*([a-zA-Z][a-zA-Z0-9]{0,9}|\d+)\s*\)\s*;\s*\}$/i.test(texto)) {
+            const m = texto.match(/^if\s*\(\s*([a-zA-Z][a-zA-Z0-9]{0,9}|\d+)\s*(>=|<=|>|<|=|<>)\s*([a-zA-Z][a-zA-Z0-9]{0,9}|\d+)\s*\)\s*\{\s*print\s*\(\s*([a-zA-Z][a-zA-Z0-9]{0,9}|\d+)\s*\)\s*;\s*\}$/i);
+            return `<programa>
+└── <sentencia>
+    └── <condicional>
+        ├── if
+        ├── (
+        ├── <condicion>
+        │   ├── <expresion>
+        │   │   └── ${m[1]}
+        │   ├── <operador_relacional>
+        │   │   └── ${m[2]}
+        │   └── <expresion>
+        │       └── ${m[3]}
+        ├── )
+        ├── {
+        ├── <sentencia>
+        │   └── <impresion>
+        │       ├── print
+        │       ├── (
+        │       ├── <expresion>
+        │       │   └── ${m[4]}
+        │       ├── )
+        │       └── ;
+        └── }`;
+        }
+
+        if (/^for\s*\(\s*([a-zA-Z][a-zA-Z0-9]{0,9})\s*:=\s*(\d+)\s*;\s*([a-zA-Z][a-zA-Z0-9]{0,9})\s*(>=|<=|>|<|=|<>)\s*(\d+)\s*;\s*([a-zA-Z][a-zA-Z0-9]{0,9})\s*:=\s*([a-zA-Z][a-zA-Z0-9]{0,9})\s*\+\s*(\d+)\s*\)\s*\{\s*print\s*\(\s*([a-zA-Z][a-zA-Z0-9]{0,9})\s*\)\s*;\s*\}$/i.test(texto)) {
+            const m = texto.match(/^for\s*\(\s*([a-zA-Z][a-zA-Z0-9]{0,9})\s*:=\s*(\d+)\s*;\s*([a-zA-Z][a-zA-Z0-9]{0,9})\s*(>=|<=|>|<|=|<>)\s*(\d+)\s*;\s*([a-zA-Z][a-zA-Z0-9]{0,9})\s*:=\s*([a-zA-Z][a-zA-Z0-9]{0,9})\s*\+\s*(\d+)\s*\)\s*\{\s*print\s*\(\s*([a-zA-Z][a-zA-Z0-9]{0,9})\s*\)\s*;\s*\}$/i);
+            return `<programa>
+└── <sentencia>
+    └── <ciclo_for>
+        ├── for
+        ├── (
+        ├── <asignacion_for>
+        │   ├── <identificador>
+        │   │   └── ${m[1]}
+        │   ├── :=
+        │   └── <numero>
+        │       └── ${m[2]}
+        ├── ;
+        ├── <condicion>
+        │   ├── <expresion>
+        │   │   └── ${m[3]}
+        │   ├── <operador_relacional>
+        │   │   └── ${m[4]}
+        │   └── <expresion>
+        │       └── ${m[5]}
+        ├── ;
+        ├── <incremento>
+        │   ├── <identificador>
+        │   │   └── ${m[6]}
+        │   ├── :=
+        │   ├── <identificador>
+        │   │   └── ${m[7]}
+        │   ├── +
+        │   └── <numero>
+        │       └── ${m[8]}
+        ├── )
+        ├── {
+        ├── <sentencia>
+        │   └── <impresion>
+        │       ├── print
+        │       ├── (
+        │       ├── <expresion>
+        │       │   └── ${m[9]}
+        │       ├── )
+        │       └── ;
+        └── }`;
+        }
+
+        return "No se pudo generar un árbol para esta entrada.";
+    }
+
+    function ponerEjemplo(n) {
+        const ejemplos = {
+            1: "int contador;",
+            2: "contador := 25;",
+            3: "print(contador);",
+            4: "if(contador >= 10){ print(contador); }",
+            5: "for(contador := 1; contador < 5; contador := contador + 1){ print(contador); }"
+        };
+
+        document.getElementById("codigo").value = ejemplos[n];
+    }
+
+    function cargarEjemploAleatorio() {
+        const n = Math.floor(Math.random() * 5) + 1;
+        ponerEjemplo(n);
+    }
+
+    function limpiarTodo() {
+        document.getElementById("codigo").value = "";
+        document.getElementById("bnf").textContent = 'Presiona "Ver BNF" para mostrar la gramática del ejercicio.';
+        document.getElementById("arbol").textContent = 'Presiona "Ver Árbol" para construir el árbol según la entrada.';
+        document.getElementById("tabla").innerHTML = `
+            <tr>
+                <th>Línea</th>
+                <th>Columna</th>
+                <th>Lexema</th>
+                <th>Tipo</th>
+                <th>Detalle</th>
+            </tr>
+        `;
+    }
+
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+    }
 </script>
 
 </body>

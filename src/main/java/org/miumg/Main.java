@@ -1,17 +1,31 @@
 package org.miumg;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
+import java.util.List;
+import java.util.Scanner;
+
 public class Main {
     public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!");
+        Scanner scanner = new Scanner(System.in);
+        StringBuilder codigo = new StringBuilder();
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            System.out.println("i = " + i);
+        System.out.println("Ingrese el código fuente línea por línea.");
+        System.out.println("Escriba FIN en una línea sola para terminar:\n");
+
+        while (true) {
+            String linea = scanner.nextLine();
+            if ("FIN".equalsIgnoreCase(linea.trim())) {
+                break;
+            }
+            codigo.append(linea).append("\n");
+        }
+
+        AnalizadorLexico analizador = new AnalizadorLexico();
+        List<TokenInfo> tokens = analizador.analizar(codigo.toString());
+
+        System.out.println("\n========== RESULTADO DEL ANÁLISIS ==========\n");
+
+        for (TokenInfo token : tokens) {
+            System.out.println(token);
         }
     }
 }
